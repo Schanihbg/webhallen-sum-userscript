@@ -14,6 +14,8 @@
 
   let ME = null;
   let MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dec"];
+  let isFetching = false;
+  let data = null;
 
   async function fetchAPI(uri, params = null) {
       let resp;
@@ -40,7 +42,7 @@
   }
 
   function filterJson(jsonObject, keysToInclude) {
-    return Object.keys(jsonObject).reduce((acc, key) => (keysToInclude.includes(key) && (acc[key] = jsonObject[key]), acc), {});
+      return Object.keys(jsonObject).reduce((acc, key) => (keysToInclude.includes(key) && (acc[key] = jsonObject[key]), acc), {});
   }
 
   async function fetchMe() {
@@ -69,10 +71,10 @@
       return data;
   }
 
-  async function fetchSupplyDrops() {
-      const data = await fetchAPI(`https://www.webhallen.com/api/supply-drop/`);
-      return data;
-  }
+async function fetchSupplyDrops() {
+    const data = await fetchAPI(`https://www.webhallen.com/api/supply-drop/`);
+    return data;
+}
 
   function getOrderDatesPerMonthWithSumKillstreak(orders) {
       const groupedData = Object.entries(orders.reduce((acc, { orderDate, sentDate, totalSum }) => {
@@ -84,21 +86,21 @@
           const sentYear = dateSent.getUTCFullYear();
           const sentMonth = dateSent.getUTCMonth();
 
-          const sentKey = new Date(Date.UTC(sentYear, sentMonth)).getTime() / 1000;
-          if (!acc[sentKey]) {
-              acc[sentKey] = { totalSum: totalSum };
+        const sentKey = new Date(Date.UTC(sentYear, sentMonth)).getTime() / 1000;
+        if (!acc[sentKey]) {
+            acc[sentKey] = { totalSum: totalSum };
+        } else {
+            acc[sentKey].totalSum += totalSum;
+        }
+        
+        if ( sentYear != orderedYear || sentMonth != orderedMonth ) {
+          const orderKey = new Date(Date.UTC(orderedYear, orderedMonth)).getTime() / 1000;
+          if (!acc[orderKey]) {
+              acc[orderKey] = { totalSum: totalSum };
           } else {
-              acc[sentKey].totalSum += totalSum;
+              acc[orderKey].totalSum += totalSum;
           }
-          
-          if ( sentYear != orderedYear || sentMonth != orderedMonth ) {
-            const orderKey = new Date(Date.UTC(orderedYear, orderedMonth)).getTime() / 1000;
-            if (!acc[orderKey]) {
-                acc[orderKey] = { totalSum: totalSum };
-            } else {
-                acc[orderKey].totalSum += totalSum;
-            }
-          }
+        }
 
           return acc;
       }, {})).map(([key, { totalSum }]) => ({
@@ -146,12 +148,12 @@
 
       let unsortedCategories = {};
       filteredOrders.forEach(order => {order.rows.forEach(item => {
-        const categories = item.product.categoryTree.split('/');
-        const topLevel = categories[0];
-        const subcategory = categories.length > 1 ? categories[1] : null;
-        const categoryString = topLevel + (subcategory !== null ? '/' + subcategory : '');
-        
-        unsortedCategories[categoryString] = (unsortedCategories[categoryString] || 0) + 1
+          const categories = item.product.categoryTree.split('/');
+          const topLevel = categories[0];
+          const subcategory = categories.length > 1 ? categories[1] : null;
+          const categoryString = topLevel + (subcategory !== null ? '/' + subcategory : '');
+
+          unsortedCategories[categoryString] = (unsortedCategories[categoryString] || 0) + 1
       })});
 
       const sortedKeys = Object.keys(unsortedCategories).sort();
@@ -287,76 +289,76 @@
   }
 
   function addSortingFunctionality(table, headers) {
-    let thead = table.querySelector("thead");
-    let headerRow = thead.querySelector("tr");
+      let thead = table.querySelector("thead");
+      let headerRow = thead.querySelector("tr");
 
-    headerRow.childNodes.forEach(function (header, index) {
-      header.addEventListener("click", function () {
-        sortTable(table, index, headers);
-      });
-    });
-
-    function sortTable(table, columnIndex, headers) {
-      let rows,
-        switching,
-        i,
-        x,
-        y,
-        shouldSwitch,
-        dir,
-        switchcount = 0;
-      switching = true;
-      dir = "asc"; // Default sorting direction
-
-      while (switching) {
-        switching = false;
-        rows = table.querySelector("tbody").rows;
-
-        for (i = 0; i < rows.length - 1; i++) {
-          shouldSwitch = false;
-          x = rows[i].getElementsByTagName("td")[columnIndex];
-          y = rows[i + 1].getElementsByTagName("td")[columnIndex];
-
-          let xContent = x.textContent.toLowerCase();
-          let yContent = y.textContent.toLowerCase();
-
-          // Check if sorting is for string or number
-          if (columnIndex === 0) {
-            shouldSwitch =
-              dir === "asc" ? xContent > yContent : xContent < yContent;
-          } else if (columnIndex === 1) {
-            shouldSwitch =
-              dir === "asc"
-                ? parseInt(xContent) > parseInt(yContent)
-                : parseInt(xContent) < parseInt(yContent);
-          } else if (columnIndex === 2) {
-            shouldSwitch =
-              dir === "asc"
-                ? parseInt(xContent) > parseInt(yContent)
-                : parseInt(xContent) < parseInt(yContent);
-          }
-
-          if (shouldSwitch) {
-            rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-            switching = true;
-            switchcount++;
-          }
-        }
-
-        // Toggle the sorting direction if a switch occurred
-        if (switchcount === 0 && dir === "asc") {
-          dir = "desc";
-          switching = true;
-        }
-      }
-
-      // Update header text with arrow indicator
-      let arrow = dir === "asc" ? "▲" : "▼";
       headerRow.childNodes.forEach(function (header, index) {
-        let arrowIndicator = index === columnIndex ? arrow : "";
-        header.textContent = headers[index] + arrowIndicator;
+          header.addEventListener("click", function () {
+              sortTable(table, index, headers);
+          });
       });
-    }
+
+      function sortTable(table, columnIndex, headers) {
+          let rows,
+              switching,
+              i,
+              x,
+              y,
+              shouldSwitch,
+              dir,
+              switchcount = 0;
+          switching = true;
+          dir = "asc"; // Default sorting direction
+
+          while (switching) {
+              switching = false;
+              rows = table.querySelector("tbody").rows;
+
+              for (i = 0; i < rows.length - 1; i++) {
+                  shouldSwitch = false;
+                  x = rows[i].getElementsByTagName("td")[columnIndex];
+                  y = rows[i + 1].getElementsByTagName("td")[columnIndex];
+
+                  let xContent = x.textContent.toLowerCase();
+                  let yContent = y.textContent.toLowerCase();
+
+                  // Check if sorting is for string or number
+                  if (columnIndex === 0) {
+                      shouldSwitch =
+                          dir === "asc" ? xContent > yContent : xContent < yContent;
+                  } else if (columnIndex === 1) {
+                      shouldSwitch =
+                          dir === "asc"
+                          ? parseInt(xContent) > parseInt(yContent)
+                      : parseInt(xContent) < parseInt(yContent);
+                  } else if (columnIndex === 2) {
+                      shouldSwitch =
+                          dir === "asc"
+                          ? parseInt(xContent) > parseInt(yContent)
+                      : parseInt(xContent) < parseInt(yContent);
+                  }
+
+                  if (shouldSwitch) {
+                      rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+                      switching = true;
+                      switchcount++;
+                  }
+              }
+
+              // Toggle the sorting direction if a switch occurred
+              if (switchcount === 0 && dir === "asc") {
+                  dir = "desc";
+                  switching = true;
+              }
+          }
+
+          // Update header text with arrow indicator
+          let arrow = dir === "asc" ? "▲" : "▼";
+          headerRow.childNodes.forEach(function (header, index) {
+              let arrowIndicator = index === columnIndex ? arrow : "";
+              header.textContent = headers[index] + arrowIndicator;
+          });
+      }
   }
 
   function generateMonthsTable(jsonData) {
@@ -709,55 +711,147 @@
       clickedLink.classList.add('router-link-exact-active', 'router-link-active');
 
       let content = `
-      <h2 class="level-one-heading mb-5">Min statistik</h2><hr>
-      <div class="mb-5">Här hittar du statistik om din aktivitet på webhallen.</div>
-      `
+    <h2 class="level-one-heading mb-5">Min statistik</h2><hr>
+    <div class="mb-5">Här hittar du statistik om din aktivitet på webhallen.</div>
+    <div class="list-settings">
+      <button class="toggle-btn" aria-label="Experience"><span class="toggle-text">Experience</span></button>
+      <button class="toggle-btn" aria-label="Streaks"><span class="toggle-text">Streaks</span></button>
+      <button class="toggle-btn" aria-label="Hoarder"><span class="toggle-text">Hoarder</span></button>
+      <button class="toggle-btn" aria-label="Categories"><span class="toggle-text">Categories</span></button>
+      <button class="toggle-btn" aria-label="Orders by month"><span class="toggle-text">Orders by month</span></button>
+    </div>
+    `
 
-      let paths = ['section',
-                   'div.member-subpage',
-                   'div.container'];
-      let injectPath = findInjectPath(paths);
-      injectPath.innerHTML = content;
+    let paths = ['section',
+                  'div.member-subpage',
+                  'div.container'];
+    let injectPath = findInjectPath(paths);
 
+    injectPath.innerHTML = content;
+
+    const currentView = injectPath.appendChild(document.createElement("div"));
+    currentView.setAttribute('id', 'statsViewContainer')
+
+    const buttons = injectPath.getElementsByTagName('button');
+
+    addButtonEvents(buttons);
+
+    // Default view
+    showLoader();
+    showExperience()
+}
+
+  function addButtonEvents(buttons) {
+      for (let button of buttons) {
+          const onClick = getButtonClickFunction(button.ariaLabel);
+          button.addEventListener("click", async (e) => {
+              e.preventDefault();
+              for (let b of buttons) {
+                  b.classList.remove('active');
+              }
+              button.classList.add('active');
+
+              if (isFetching) {
+                  return showLoader();
+              }
+
+              onClick();
+          })
+      };
+  }
+
+  function getButtonClickFunction(ariaLabel) {
+      switch (ariaLabel) {
+          case "Experience":
+              return showExperience
+          case "Streaks":
+              return showStreaks
+          case "Hoarder":
+              return showHoarder
+          case "Categories":
+              return showCategories
+          case "Orders by month":
+              return showOrderByMonth
+          default:
+              return () => null
+      }
+  }
+
+  async function showStreaks(event) {
+      const {orders} = await useData();
+
+      const streaks = findStreaks(orders);
+      if (streaks) {
+          document.getElementById('statsViewContainer').replaceChildren(generateStreaksTable(streaks));
+      }
+  }
+
+  async function showHoarder(event) {
+      const {orders} = await useData();
+
+      const hoarders = findTopHoarderCheevoStats(orders, 10);
+      if (hoarders) {
+          document.getElementById('statsViewContainer').replaceChildren(generateHoarderTable(hoarders));
+      }
+  }
+
+  async function showCategories(event) {
+      const {orders} = await useData();
+
+      const categories = findCategoriesByPeriod(orders);
+      if (categories) {
+          document.getElementById('statsViewContainer').replaceChildren(generateCategoriesTable(categories));
+      }
+  }
+
+  async function showOrderByMonth(event) {
+      const {orders} = await useData();
+
+      const ordersByMonth = findOrdersPerMonth(orders);
+      if (ordersByMonth) {
+          document.getElementById('statsViewContainer').replaceChildren(generateMonthsTable(ordersByMonth));
+      }
+  }
+
+  async function showExperience(event) {
+      const {orders, supplyDrops, achievements} = await useData();
+
+      const experience = getExperienceStats(ME, orders, achievements, supplyDrops);
+      if (experience) {
+          document.getElementById('statsViewContainer').replaceChildren(generateExperienceTable(experience));
+      }
+  }
+
+  function showLoader() {
       let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       let image = document.createElementNS("http://www.w3.org/2000/svg", "image");
       image.setAttribute("href", 'https://cdn.webhallen.com/img/loading_light.svg');
       svg.appendChild(image);
+      document.getElementById('statsViewContainer').replaceChildren(svg);
+  }
 
-      injectPath.appendChild(svg);
+  function showError(error) {
+      document.getElementById('statsViewContainer').innerHTML = "Något gick fel..."
+      console.log(error);
+  }
 
-      let orders = await fetchOrders(ME.id);
-      let supplyDrops = await fetchSupplyDrops(ME.id);
-      let achievements = await fetchAchievements(ME.id);
-
-      injectPath.innerHTML = content;
-
-      if (orders) {
-          const experience = getExperienceStats(ME, orders, achievements, supplyDrops);
-          if (experience) {
-              injectPath.appendChild(addDataToDiv("Experience", generateExperienceTable(experience)));
+  async function useData() {
+      if (!isFetching && !data) {
+          isFetching = true;
+          try {
+              let orders, supplyDrops, achievements;
+              [orders, supplyDrops, achievements] = await Promise.all([
+                  fetchOrders(ME.id),
+                  fetchSupplyDrops(ME.id),
+                  fetchAchievements(ME.id)
+              ]);
+              data = {orders, supplyDrops, achievements};
+          } catch(e) {
+              showError(e);
           }
-
-          const streaks = findStreaks(orders);
-          if (streaks) {
-              injectPath.appendChild(addDataToDiv("Streaks", generateStreaksTable(streaks)));
-          }
-
-          const hoarder = findTopHoarderCheevoStats(orders, 10);
-          if (hoarder) {
-              injectPath.appendChild(addDataToDiv("Hoarder Top 10", generateHoarderTable(hoarder)));
-          }
-
-          const categories = findCategoriesByPeriod(orders);
-          if (categories) {
-              injectPath.appendChild(addDataToDiv("Kategorier", generateCategoriesTable(categories)));
-          }
-
-          const orderMonths = findOrdersPerMonth(orders);
-          if (orderMonths) {
-              injectPath.appendChild(addDataToDiv("Ordrar per månad", generateMonthsTable(orderMonths)));
-          }
+          isFetching = false;
       }
+      return data;
   }
 
   function addLink() {
